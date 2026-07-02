@@ -3,6 +3,7 @@
 DerivedData/
 Build/
 Dist/
+docs/
 site/dist/
 site/node_modules/
 *.xcuserstate

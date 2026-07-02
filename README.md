@@ -1,36 +1,47 @@
 # Tube
 
-Tube is a minimal native macOS single-site browser for YouTube.
+Tube is a minimal native macOS app for watching YouTube in a focused window.
+It uses Swift, AppKit, and `WKWebView` instead of bundling a browser runtime.
 
-The app goal is intentionally narrow: open YouTube in a fast native window with a thin bezel, no URL bar, no visible navigation chrome, and no modification of YouTube content or behavior.
+The project is intentionally narrow: it opens YouTube, keeps browser chrome out
+of the way, and avoids modifying YouTube content or behavior. Tube is not
+affiliated with YouTube or Google.
 
-## Current Documents
+## Features
 
-- [Research and Stack Decision](docs/00-research-and-stack-decision.md)
-- [Product Design](docs/01-product-design.md)
-- [Implementation Plan](docs/02-implementation-plan.md)
-- [Verification Log](docs/03-verification.md)
-- [Production Readiness](docs/04-production-readiness.md)
-- [App Identity](docs/app-identity/README.md)
+- Native macOS window with standard traffic-light controls.
+- Focused YouTube experience with no URL bar or permanent browser toolbar.
+- Back, forward, reload, stop, and open-in-browser commands.
+- Trackpad back/forward navigation that respects the macOS setting.
+- YouTube/Google sign-in inside WebKit.
+- Light and dark appearance support for the native app chrome.
+- Small Vite-powered marketing site in `site/`.
 
-## Current Decision
+## Requirements
 
-Build v1 as a macOS app using Swift, AppKit, and `WKWebView`.
+- macOS 13 or newer.
+- Xcode Command Line Tools with Swift 6 support.
+- Node.js `^20.19.0` or `>=22.12.0` for the marketing site.
 
-Electron is intentionally out of scope for v1 because it bundles Chromium and Node.js. Tauri remains a future option if cross-platform delivery becomes more important than the smallest native Mac implementation.
+## Run The Mac App Locally
 
-## Build And Run
+Clone the repo:
 
-Run tests:
+```sh
+git clone https://github.com/thetylerreiff/Tube.git
+cd Tube
+```
+
+Run the Swift tests:
 
 ```sh
 swift test
 ```
 
-Build a signed local app bundle:
+Build a local app bundle:
 
 ```sh
-scripts/build-app.sh release
+scripts/build-app.sh debug
 ```
 
 Launch the app:
@@ -39,27 +50,80 @@ Launch the app:
 open Build/Tube.app
 ```
 
-Create a production release artifact:
+For a release-style local build, use:
 
 ```sh
-scripts/release-app.sh --identity "Developer ID Application: Your Name (TEAMID)" --notary-profile tube-notary
+scripts/build-app.sh release
 ```
 
-The release script requires a Developer ID Application certificate and a `notarytool` keychain profile. It signs with hardened runtime, creates `.zip` and `.dmg` artifacts, submits notarization, staples tickets, and runs Gatekeeper validation.
+By default, local app bundles are ad-hoc signed. Production distribution
+requires a Developer ID Application certificate and notarization.
 
-Account login is handled by YouTube/Google inside the `WKWebView`. Use `File > Sign In to YouTube` to start the normal Google sign-in flow. Tube does not collect credentials or store tokens itself; WebKit persists the resulting website session.
+## Run The Site Locally
 
-Navigation stays native and mostly chrome-free: use the hover-revealed titlebar buttons, `Command-[` / `Command-]`, the `History` menu, or trackpad swipe gestures to move backward and forward through YouTube page history. Trackpad navigation respects the user's macOS "Swipe between pages" setting.
+Install dependencies:
 
-Tube's native bezel, window background, error overlay, and WebKit under-page background follow the user's macOS light/dark appearance. YouTube's own in-page theme remains controlled by YouTube/account settings.
+```sh
+cd site
+npm install
+```
 
-Tube uses native macOS window controls with the content view extended behind the titlebar so there is no permanent header strip. The red/yellow/green controls and a compact glass back/forward cluster fade in when hovering the titlebar area; the revealed titlebar band supports dragging and double-click zoom without blocking normal YouTube clicks and scrolling below it.
+Start the local dev server:
 
-## App Identity
+```sh
+npm run dev
+```
 
-Tube includes a generated liquid-glass retro TV app icon concept, exported as a macOS icon set and bundled as `AppIcon.icns` by `scripts/build-app.sh`.
+Build the static site:
 
-The About panel shows Tube's version/build, copyright, icon, and a short privacy summary. The longer privacy note lives at [docs/app-identity/privacy.md](docs/app-identity/privacy.md).
+```sh
+npm run build
+```
+
+Preview the production build:
+
+```sh
+npm run preview
+```
+
+The site is intentionally separate from the macOS app. It is a small static
+front end for project/download information.
+
+## Release Builds
+
+The release helper signs, packages, notarizes, staples, and validates the app:
+
+```sh
+scripts/release-app.sh \
+  --identity "Developer ID Application: Your Name (TEAMID)" \
+  --notary-profile tube-notary
+```
+
+Create the `notarytool` keychain profile before the first notarized release:
+
+```sh
+xcrun notarytool store-credentials tube-notary
+```
+
+## Privacy
+
+Tube does not collect credentials, inject scripts, modify YouTube, or track
+usage. Google and YouTube sign-in happen inside WebKit, and WebKit manages the
+resulting website session.
+
+## Contributing
+
+Issues and pull requests are welcome. Please keep changes aligned with the
+project scope: a small native Mac wrapper for YouTube, minimal chrome, and no
+content injection or scraping.
+
+Before opening a PR, run:
+
+```sh
+swift test
+cd site
+npm run build
+```
 
 ## License
 
