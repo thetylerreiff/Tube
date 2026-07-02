@@ -1,0 +1,156 @@
+import AppKit
+
+@MainActor
+enum BrowserCommands {
+    static func installMainMenu(target: AppDelegate) {
+        let mainMenu = NSMenu(title: "Main Menu")
+        NSApp.mainMenu = mainMenu
+
+        addAppMenu(to: mainMenu, target: target)
+        addFileMenu(to: mainMenu, target: target)
+        addViewMenu(to: mainMenu, target: target)
+        addHistoryMenu(to: mainMenu, target: target)
+        addWindowMenu(to: mainMenu)
+    }
+
+    private static func addAppMenu(to mainMenu: NSMenu, target: AppDelegate) {
+        let appItem = NSMenuItem()
+        mainMenu.addItem(appItem)
+
+        let appMenu = NSMenu(title: "Tube")
+        appItem.submenu = appMenu
+
+        appMenu.addItem(item(
+            title: "About Tube",
+            action: #selector(AppDelegate.showAboutPanel(_:)),
+            key: "",
+            target: target
+        ))
+        appMenu.addItem(.separator())
+        appMenu.addItem(
+            withTitle: "Quit Tube",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+    }
+
+    private static func addFileMenu(to mainMenu: NSMenu, target: AppDelegate) {
+        let fileItem = NSMenuItem()
+        mainMenu.addItem(fileItem)
+
+        let fileMenu = NSMenu(title: "File")
+        fileItem.submenu = fileMenu
+
+        fileMenu.addItem(item(
+            title: "Open Current Page in Browser",
+            action: #selector(AppDelegate.openCurrentPageInBrowser(_:)),
+            key: "o",
+            target: target
+        ))
+        fileMenu.addItem(item(
+            title: "Sign In to YouTube",
+            action: #selector(AppDelegate.signInToYouTube(_:)),
+            key: "l",
+            target: target,
+            modifiers: [.command, .shift]
+        ))
+        fileMenu.addItem(.separator())
+        fileMenu.addItem(item(
+            title: "Reset YouTube Session",
+            action: #selector(AppDelegate.resetYouTubeSession(_:)),
+            key: "",
+            target: target
+        ))
+    }
+
+    private static func addViewMenu(to mainMenu: NSMenu, target: AppDelegate) {
+        let viewItem = NSMenuItem()
+        mainMenu.addItem(viewItem)
+
+        let viewMenu = NSMenu(title: "View")
+        viewItem.submenu = viewMenu
+
+        viewMenu.addItem(item(
+            title: "Reload",
+            action: #selector(AppDelegate.reloadPage(_:)),
+            key: "r",
+            target: target
+        ))
+
+        let stopItem = item(
+            title: "Stop Loading",
+            action: #selector(AppDelegate.stopLoading(_:)),
+            key: String(UnicodeScalar(27)),
+            target: target
+        )
+        stopItem.keyEquivalentModifierMask = []
+        viewMenu.addItem(stopItem)
+
+        viewMenu.addItem(.separator())
+        viewMenu.addItem(
+            withTitle: "Enter Full Screen",
+            action: #selector(NSWindow.toggleFullScreen(_:)),
+            keyEquivalent: "f"
+        ).keyEquivalentModifierMask = [.control, .command]
+    }
+
+    private static func addHistoryMenu(to mainMenu: NSMenu, target: AppDelegate) {
+        let historyItem = NSMenuItem()
+        mainMenu.addItem(historyItem)
+
+        let historyMenu = NSMenu(title: "History")
+        historyItem.submenu = historyMenu
+
+        historyMenu.addItem(item(
+            title: "Back",
+            action: #selector(AppDelegate.goBack(_:)),
+            key: "[",
+            target: target
+        ))
+        historyMenu.addItem(item(
+            title: "Forward",
+            action: #selector(AppDelegate.goForward(_:)),
+            key: "]",
+            target: target
+        ))
+    }
+
+    private static func addWindowMenu(to mainMenu: NSMenu) {
+        let windowItem = NSMenuItem()
+        mainMenu.addItem(windowItem)
+
+        let windowMenu = NSMenu(title: "Window")
+        windowItem.submenu = windowMenu
+        NSApp.windowsMenu = windowMenu
+
+        windowMenu.addItem(
+            withTitle: "Minimize",
+            action: #selector(NSWindow.miniaturize(_:)),
+            keyEquivalent: "m"
+        )
+        windowMenu.addItem(
+            withTitle: "Zoom",
+            action: #selector(NSWindow.performZoom(_:)),
+            keyEquivalent: ""
+        )
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(
+            withTitle: "Bring All to Front",
+            action: #selector(NSApplication.arrangeInFront(_:)),
+            keyEquivalent: ""
+        )
+    }
+
+    private static func item(
+        title: String,
+        action: Selector,
+        key: String,
+        target: AnyObject,
+        modifiers: NSEvent.ModifierFlags = .command
+    ) -> NSMenuItem {
+        let menuItem = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        menuItem.target = target
+        menuItem.keyEquivalentModifierMask = modifiers
+        return menuItem
+    }
+}

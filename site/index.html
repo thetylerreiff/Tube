@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Tube is a minimal native macOS window for YouTube."
+    />
+    <meta name="theme-color" content="#050607" />
+    <link rel="icon" type="image/png" href="/tube-logo.png" />
+    <link rel="apple-touch-icon" href="/tube-logo.png" />
+    <title>Tube - Native YouTube for Mac</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="window" aria-label="Tube app loading preview">
+          <div class="window-bar">
+            <div class="traffic-lights" aria-hidden="true">
+              <span class="traffic-light red"></span>
+              <span class="traffic-light yellow"></span>
+              <span class="traffic-light green"></span>
+            </div>
+
+            <h1 id="page-title" class="window-title">
+              <img src="/tube-logo.png" alt="" />
+              <span>Tube</span>
+            </h1>
+          </div>
+
+          <div class="preview-stage">
+            <div class="native-bezel">
+              <div class="youtube-shell" aria-hidden="true">
+                <div class="tube-topbar">
+                  <span class="brand-dot"></span>
+                  <span class="skeleton search"></span>
+                  <span class="skeleton action"></span>
+                  <span class="skeleton avatar"></span>
+                </div>
+
+                <div class="tube-content">
+                  <aside class="tube-sidebar">
+                    <span class="skeleton nav wide"></span>
+                    <span class="skeleton nav"></span>
+                    <span class="skeleton nav short"></span>
+                    <span class="skeleton nav wide"></span>
+                    <span class="skeleton nav"></span>
+                  </aside>
+
+                  <div class="video-grid">
+                    <article class="video-card primary">
+                      <span class="skeleton thumb"></span>
+                      <span class="skeleton title"></span>
+                      <span class="skeleton meta"></span>
+                    </article>
+                    <article class="video-card">
+                      <span class="skeleton thumb"></span>
+                      <span class="skeleton title"></span>
+                      <span class="skeleton meta"></span>
+                    </article>
+                    <article class="video-card">
+                      <span class="skeleton thumb"></span>
+                      <span class="skeleton title"></span>
+                      <span class="skeleton meta"></span>
+                    </article>
+                    <article class="video-card">
+                      <span class="skeleton thumb"></span>
+                      <span class="skeleton title"></span>
+                      <span class="skeleton meta"></span>
+                    </article>
+                    <article class="video-card">
+                      <span class="skeleton thumb"></span>
+                      <span class="skeleton title"></span>
+                      <span class="skeleton meta"></span>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="tagline">
+          Tube is a minimal native macOS window for YouTube: no URL bar, no
+          browser chrome, just the video site in a focused Mac app.
+        </p>
+
+        <a class="download-button" href="/Tube.dmg" download>
+          <span>Download</span>
+        </a>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
