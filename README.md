@@ -60,3 +60,7 @@ Tube uses native macOS window controls with the content view extended behind the
 Tube includes a generated liquid-glass retro TV app icon concept, exported as a macOS icon set and bundled as `AppIcon.icns` by `scripts/build-app.sh`.
 
 The About panel shows Tube's version/build, copyright, icon, and a short privacy summary. The longer privacy note lives at [docs/app-identity/privacy.md](docs/app-identity/privacy.md).
+
+## License
+
+Tube is released under the [MIT License](LICENSE).
