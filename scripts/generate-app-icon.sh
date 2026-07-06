@@ -10,6 +10,11 @@ ACTOOL_LOG="$ROOT_DIR/Build/actool.log"
 ICNS_PATH="$ROOT_DIR/Tube/AppIcon.icns"
 
 if [[ ! -f "$SOURCE_IMAGE" ]]; then
+  if [[ -f "$ICNS_PATH" && -f "$ASSETCATALOG_BUILD_DIR/Assets.car" ]]; then
+    echo "Icon source missing: $SOURCE_IMAGE; reusing existing icon artifacts" >&2
+    echo "$ICNS_PATH"
+    exit 0
+  fi
   echo "Missing icon source: $SOURCE_IMAGE" >&2
   exit 66
 fi
