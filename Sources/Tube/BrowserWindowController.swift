@@ -4,13 +4,13 @@ import QuartzCore
 @MainActor
 final class BrowserWindowController: NSWindowController {
     let browserViewController = BrowserViewController()
-    private let titlebarRevealInset: CGFloat = 6
     private let titlebarRevealHeight: CGFloat = 34
     private let titlebarChromeLeading: CGFloat = 8
     private let titlebarChromeTopInset: CGFloat = 0
     private let titlebarChromeWidth: CGFloat = 160
     private let titlebarRevealAnimationDuration: TimeInterval = 0.18
     private let titlebarChromeView = TitlebarChromeView()
+    private let titlebarDragHandle = TitlebarDragHandleView()
     private var titlebarHoverMonitor: Any?
     private var titlebarChromeShouldBeVisible = false
     private var standardWindowButtonsShouldBeVisible = false
@@ -24,7 +24,7 @@ final class BrowserWindowController: NSWindowController {
             .fullSizeContentView
         ]
 
-        let window = TubeWindow(
+        let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900),
             styleMask: styleMask,
             backing: .buffered,
@@ -42,8 +42,6 @@ final class BrowserWindowController: NSWindowController {
         window.tabbingMode = .disallowed
         window.collectionBehavior.insert(.fullScreenPrimary)
         window.contentViewController = browserViewController
-        window.topEdgeInteractionHeight = titlebarRevealInset
-        window.titlebarDoubleClickHeight = titlebarRevealHeight
 
         super.init(window: window)
         window.delegate = self
@@ -54,6 +52,7 @@ final class BrowserWindowController: NSWindowController {
         setTitlebarChromeVisible(false, animated: false)
         installTitlebarHoverMonitor(for: window)
         window.center()
+        window.setFrameAutosaveName("TubeMainWindow")
     }
 
     required init?(coder: NSCoder) {
@@ -61,6 +60,7 @@ final class BrowserWindowController: NSWindowController {
     }
 
     private func setTitlebarChromeVisible(_ isVisible: Bool, animated: Bool) {
+        titlebarDragHandle.isHidden = !isVisible
         setStandardWindowButtonsVisible(isVisible, animated: animated)
         setTitlebarNavigationVisible(isVisible, animated: animated)
     }
@@ -180,11 +180,10 @@ final class BrowserWindowController: NSWindowController {
             && windowBounds.contains(mouseLocation)
             && mouseLocation.y >= revealMinY
 
-        (window as? TubeWindow)?.isTitlebarChromeVisible = isHoveringTitlebar
         setTitlebarChromeVisible(isHoveringTitlebar, animated: true)
     }
 
-    private func installTitlebarChrome(in window: TubeWindow) {
+    private func installTitlebarChrome(in window: NSWindow) {
         guard let contentView = window.contentView else {
             return
         }
@@ -201,10 +200,21 @@ final class BrowserWindowController: NSWindowController {
         titlebarChromeView.alphaValue = 0
         titlebarChromeView.isHidden = true
 
-        contentView.addSubview(titlebarChromeView, positioned: .above, relativeTo: nil)
-        window.titlebarControlExclusionView = titlebarChromeView
+        titlebarDragHandle.translatesAutoresizingMaskIntoConstraints = false
+        titlebarDragHandle.isHidden = true
+        titlebarDragHandle.scrollTarget = { [weak self] in
+            self?.browserViewController.webContentView
+        }
+
+        contentView.addSubview(titlebarDragHandle)
+        contentView.addSubview(titlebarChromeView, positioned: .above, relativeTo: titlebarDragHandle)
 
         NSLayoutConstraint.activate([
+            titlebarDragHandle.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            titlebarDragHandle.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            titlebarDragHandle.topAnchor.constraint(equalTo: contentView.topAnchor),
+            titlebarDragHandle.heightAnchor.constraint(equalToConstant: titlebarRevealHeight),
+
             titlebarChromeView.leadingAnchor.constraint(
                 equalTo: contentView.leadingAnchor,
                 constant: titlebarChromeLeading
@@ -262,90 +272,44 @@ extension BrowserWindowController: NSWindowDelegate {
     }
 }
 
-private final class TubeWindow: NSWindow {
-    var topEdgeInteractionHeight: CGFloat = 6
-    var titlebarDoubleClickHeight: CGFloat = 34
-    var isTitlebarChromeVisible = false
-    weak var titlebarControlExclusionView: NSView?
+private final class TitlebarDragHandleView: NSView {
+    var scrollTarget: (() -> NSView?)?
 
-    override func sendEvent(_ event: NSEvent) {
-        guard event.type == .leftMouseDown, event.window === self else {
-            super.sendEvent(event)
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window else {
             return
         }
 
-        if shouldHandleTitlebarDoubleClick(event) {
-            zoom(nil)
+        if event.clickCount == 2 {
+            performTitlebarDoubleClickAction(on: window)
+        } else {
+            window.performDrag(with: event)
+        }
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        guard let target = scrollTarget?() else {
+            super.scrollWheel(with: event)
             return
         }
 
-        if shouldHandleTopEdgeDrag(event) {
-            performDrag(with: event)
-            return
-        }
-
-        super.sendEvent(event)
+        target.scrollWheel(with: event)
     }
 
-    private func shouldHandleTitlebarDoubleClick(_ event: NSEvent) -> Bool {
-        guard event.clickCount >= 2 else {
-            return false
+    private func performTitlebarDoubleClickAction(on window: NSWindow) {
+        switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
+        case "Minimize":
+            window.performMiniaturize(nil)
+        case "None":
+            break
+        default:
+            // "Maximize" and "Fill" have no public API distinction; zoom covers both.
+            window.performZoom(nil)
         }
-
-        return isPointInTopBand(event.locationInWindow, height: titlebarDoubleClickHeight)
-            && !standardWindowButtonContains(event.locationInWindow)
-            && !titlebarControlContains(event.locationInWindow)
-    }
-
-    private func shouldHandleTopEdgeDrag(_ event: NSEvent) -> Bool {
-        guard event.clickCount == 1 else {
-            return false
-        }
-
-        let dragHeight = isTitlebarChromeVisible ? titlebarDoubleClickHeight : topEdgeInteractionHeight
-
-        return isPointInTopBand(event.locationInWindow, height: dragHeight)
-            && !standardWindowButtonContains(event.locationInWindow)
-            && !titlebarControlContains(event.locationInWindow)
-    }
-
-    private func isPointInTopBand(_ point: NSPoint, height: CGFloat) -> Bool {
-        let windowBounds = eventCoordinateBounds
-        let topEdgeMinY = max(windowBounds.maxY - height, 0)
-
-        return windowBounds.contains(point) && point.y >= topEdgeMinY
-    }
-
-    private var eventCoordinateBounds: NSRect {
-        if let contentView {
-            return NSRect(origin: .zero, size: contentView.bounds.size)
-        }
-
-        return NSRect(origin: .zero, size: frame.size)
-    }
-
-    private func standardWindowButtonContains(_ point: NSPoint) -> Bool {
-        [
-            standardWindowButton(.closeButton),
-            standardWindowButton(.miniaturizeButton),
-            standardWindowButton(.zoomButton)
-        ].compactMap { $0 }.contains { button in
-            guard !button.isHidden, button.alphaValue > 0 else {
-                return false
-            }
-
-            let buttonPoint = button.convert(point, from: nil)
-            return button.bounds.contains(buttonPoint)
-        }
-    }
-
-    private func titlebarControlContains(_ point: NSPoint) -> Bool {
-        guard let titlebarControlExclusionView, !titlebarControlExclusionView.isHidden else {
-            return false
-        }
-
-        let controlPoint = titlebarControlExclusionView.convert(point, from: nil)
-        return titlebarControlExclusionView.hitTest(controlPoint) != nil
     }
 }
 

@@ -33,6 +33,10 @@ final class BrowserViewController: NSViewController {
         webView.url
     }
 
+    var webContentView: NSView {
+        webView
+    }
+
     init() {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = WKWebsiteDataStore.default()

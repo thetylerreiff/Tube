@@ -8,6 +8,7 @@ enum BrowserCommands {
 
         addAppMenu(to: mainMenu, target: target)
         addFileMenu(to: mainMenu, target: target)
+        addEditMenu(to: mainMenu)
         addViewMenu(to: mainMenu, target: target)
         addHistoryMenu(to: mainMenu, target: target)
         addWindowMenu(to: mainMenu)
@@ -26,6 +27,22 @@ enum BrowserCommands {
             key: "",
             target: target
         ))
+        appMenu.addItem(.separator())
+        appMenu.addItem(
+            withTitle: "Hide Tube",
+            action: #selector(NSApplication.hide(_:)),
+            keyEquivalent: "h"
+        )
+        appMenu.addItem(
+            withTitle: "Hide Others",
+            action: #selector(NSApplication.hideOtherApplications(_:)),
+            keyEquivalent: "h"
+        ).keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(
+            withTitle: "Show All",
+            action: #selector(NSApplication.unhideAllApplications(_:)),
+            keyEquivalent: ""
+        )
         appMenu.addItem(.separator())
         appMenu.addItem(
             withTitle: "Quit Tube",
@@ -55,12 +72,40 @@ enum BrowserCommands {
             modifiers: [.command, .shift]
         ))
         fileMenu.addItem(.separator())
+        fileMenu.addItem(
+            withTitle: "Close Window",
+            action: #selector(NSWindow.performClose(_:)),
+            keyEquivalent: "w"
+        )
+        fileMenu.addItem(.separator())
         fileMenu.addItem(item(
             title: "Reset YouTube Session",
             action: #selector(AppDelegate.resetYouTubeSession(_:)),
             key: "",
             target: target
         ))
+    }
+
+    private static func addEditMenu(to mainMenu: NSMenu) {
+        let editItem = NSMenuItem()
+        mainMenu.addItem(editItem)
+
+        let editMenu = NSMenu(title: "Edit")
+        editItem.submenu = editMenu
+
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(
+            withTitle: "Paste and Match Style",
+            action: #selector(NSTextView.pasteAsPlainText(_:)),
+            keyEquivalent: "v"
+        ).keyEquivalentModifierMask = [.command, .option, .shift]
+        editMenu.addItem(withTitle: "Delete", action: #selector(NSText.delete(_:)), keyEquivalent: "")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
     }
 
     private static func addViewMenu(to mainMenu: NSMenu, target: AppDelegate) {
@@ -77,14 +122,12 @@ enum BrowserCommands {
             target: target
         ))
 
-        let stopItem = item(
+        viewMenu.addItem(item(
             title: "Stop Loading",
             action: #selector(AppDelegate.stopLoading(_:)),
-            key: String(UnicodeScalar(27)),
+            key: ".",
             target: target
-        )
-        stopItem.keyEquivalentModifierMask = []
-        viewMenu.addItem(stopItem)
+        ))
 
         viewMenu.addItem(.separator())
         viewMenu.addItem(
