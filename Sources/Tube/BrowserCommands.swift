@@ -1,4 +1,5 @@
 import AppKit
+import TubeCore
 
 @MainActor
 enum BrowserCommands {
@@ -8,10 +9,11 @@ enum BrowserCommands {
 
         addAppMenu(to: mainMenu, target: target)
         addFileMenu(to: mainMenu, target: target)
+        addServiceMenu(to: mainMenu, target: target)
         addEditMenu(to: mainMenu)
         addViewMenu(to: mainMenu, target: target)
         addHistoryMenu(to: mainMenu, target: target)
-        addWindowMenu(to: mainMenu)
+        addWindowMenu(to: mainMenu, target: target)
     }
 
     private static func addAppMenu(to mainMenu: NSMenu, target: AppDelegate) {
@@ -65,23 +67,52 @@ enum BrowserCommands {
             target: target
         ))
         fileMenu.addItem(item(
-            title: "Sign In to YouTube",
-            action: #selector(AppDelegate.signInToYouTube(_:)),
+            title: "Sign In to \(target.currentService.displayName)",
+            action: #selector(AppDelegate.signInToCurrentService(_:)),
             key: "l",
             target: target,
             modifiers: [.command, .shift]
         ))
         fileMenu.addItem(.separator())
-        fileMenu.addItem(
-            withTitle: "Close Window",
-            action: #selector(NSWindow.performClose(_:)),
-            keyEquivalent: "w"
-        )
+        fileMenu.addItem(item(
+            title: "Close Window",
+            action: #selector(AppDelegate.closeWindow(_:)),
+            key: "w",
+            target: target
+        ))
         fileMenu.addItem(.separator())
         fileMenu.addItem(item(
-            title: "Reset YouTube Session",
-            action: #selector(AppDelegate.resetYouTubeSession(_:)),
+            title: "Reset \(target.currentService.displayName) Session",
+            action: #selector(AppDelegate.resetCurrentServiceSession(_:)),
             key: "",
+            target: target
+        ))
+    }
+
+    private static func addServiceMenu(to mainMenu: NSMenu, target: AppDelegate) {
+        let serviceItem = NSMenuItem()
+        mainMenu.addItem(serviceItem)
+
+        let serviceMenu = NSMenu(title: "Service")
+        serviceItem.submenu = serviceMenu
+
+        for service in StreamingService.allCases {
+            let serviceMenuItem = item(
+                title: service.displayName,
+                action: #selector(AppDelegate.switchService(_:)),
+                key: "",
+                target: target
+            )
+            serviceMenuItem.representedObject = service.rawValue
+            serviceMenuItem.state = service == target.currentService ? .on : .off
+            serviceMenu.addItem(serviceMenuItem)
+        }
+
+        serviceMenu.addItem(.separator())
+        serviceMenu.addItem(item(
+            title: "Choose Service…",
+            action: #selector(AppDelegate.showServiceSwitcher(_:)),
+            key: "k",
             target: target
         ))
     }
@@ -158,7 +189,7 @@ enum BrowserCommands {
         ))
     }
 
-    private static func addWindowMenu(to mainMenu: NSMenu) {
+    private static func addWindowMenu(to mainMenu: NSMenu, target: AppDelegate) {
         let windowItem = NSMenuItem()
         mainMenu.addItem(windowItem)
 
@@ -166,11 +197,12 @@ enum BrowserCommands {
         windowItem.submenu = windowMenu
         NSApp.windowsMenu = windowMenu
 
-        windowMenu.addItem(
-            withTitle: "Minimize",
-            action: #selector(NSWindow.miniaturize(_:)),
-            keyEquivalent: "m"
-        )
+        windowMenu.addItem(item(
+            title: "Minimize",
+            action: #selector(AppDelegate.minimizeWindow(_:)),
+            key: "m",
+            target: target
+        ))
         windowMenu.addItem(
             withTitle: "Zoom",
             action: #selector(NSWindow.performZoom(_:)),

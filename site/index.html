@@ -5,17 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Tube is a minimal native macOS window for YouTube."
+      content="Tube puts YouTube, YouTube TV, Netflix, Apple TV, and Hulu in one focused native Mac app. Switch services instantly with Command-K."
     />
     <meta name="theme-color" content="#0b0d0f" />
+    <link rel="canonical" href="https://tube.thetylerreiff.co/" />
     <link rel="icon" type="image/png" href="/tube-logo.png" />
     <link rel="apple-touch-icon" href="/tube-logo.png" />
-    <title>Tube - Native YouTube for Mac</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tube.thetylerreiff.co/" />
+    <meta property="og:title" content="Tube — Streaming services in one focused Mac app" />
+    <meta
+      property="og:description"
+      content="Switch between YouTube, YouTube TV, Netflix, Apple TV, and Hulu with Command-K."
+    />
+    <meta
+      property="og:image"
+      content="https://tube.thetylerreiff.co/tube-logo.png"
+    />
+    <meta property="og:image:alt" content="Tube app icon" />
+    <meta name="twitter:card" content="summary" />
+    <title>Tube — Streaming services in one focused Mac app</title>
   </head>
   <body>
     <main class="site-shell">
       <section class="hero" aria-labelledby="page-title">
-        <div class="window" aria-label="Tube app loading preview">
+        <div class="window" aria-label="Tube app with service switcher preview">
           <div class="window-bar">
             <div class="traffic-lights" aria-hidden="true">
               <span class="traffic-light red"></span>
@@ -26,53 +40,53 @@
             <h1 id="page-title" class="window-title">
               <img src="/tube-logo.png" alt="" />
               <span>Tube</span>
+              <span class="window-service" aria-hidden="true">— YouTube</span>
             </h1>
           </div>
 
-          <div class="preview-stage">
-            <div class="youtube-shell" aria-hidden="true">
-              <div class="tube-topbar">
-                <span class="brand-dot"></span>
-                <span class="skeleton search"></span>
-                <span class="skeleton action"></span>
-                <span class="skeleton avatar"></span>
+          <div class="preview-stage" aria-hidden="true">
+            <div class="streaming-shell">
+              <div class="streaming-topbar">
+                <span class="streaming-section">Home</span>
+                <span class="streaming-service">YouTube</span>
+                <span class="streaming-status">Ready</span>
               </div>
 
-              <div class="tube-content">
-                <aside class="tube-sidebar">
-                  <span class="skeleton nav wide"></span>
-                  <span class="skeleton nav"></span>
-                  <span class="skeleton nav short"></span>
-                  <span class="skeleton nav wide"></span>
-                  <span class="skeleton nav"></span>
-                </aside>
+              <div class="streaming-content">
+                <span class="content-card content-card-wide"></span>
+                <span class="content-card"></span>
+                <span class="content-card"></span>
+                <span class="content-card"></span>
+              </div>
+            </div>
 
-                <div class="video-grid">
-                  <article class="video-card primary">
-                    <span class="skeleton thumb"></span>
-                    <span class="skeleton title"></span>
-                    <span class="skeleton meta"></span>
-                  </article>
-                  <article class="video-card">
-                    <span class="skeleton thumb"></span>
-                    <span class="skeleton title"></span>
-                    <span class="skeleton meta"></span>
-                  </article>
-                  <article class="video-card">
-                    <span class="skeleton thumb"></span>
-                    <span class="skeleton title"></span>
-                    <span class="skeleton meta"></span>
-                  </article>
-                  <article class="video-card">
-                    <span class="skeleton thumb"></span>
-                    <span class="skeleton title"></span>
-                    <span class="skeleton meta"></span>
-                  </article>
-                  <article class="video-card">
-                    <span class="skeleton thumb"></span>
-                    <span class="skeleton title"></span>
-                    <span class="skeleton meta"></span>
-                  </article>
+            <div class="service-switcher">
+              <div class="switcher-search">
+                <span class="switcher-prompt">Switch service</span>
+                <kbd>⌘K</kbd>
+              </div>
+
+              <div class="service-list">
+                <div class="service-row is-current">
+                  <span class="service-index">01</span>
+                  <span class="service-name">YouTube</span>
+                  <span class="current-label">Current</span>
+                </div>
+                <div class="service-row">
+                  <span class="service-index">02</span>
+                  <span class="service-name">YouTube TV</span>
+                </div>
+                <div class="service-row">
+                  <span class="service-index">03</span>
+                  <span class="service-name">Netflix</span>
+                </div>
+                <div class="service-row">
+                  <span class="service-index">04</span>
+                  <span class="service-name">Apple TV</span>
+                </div>
+                <div class="service-row">
+                  <span class="service-index">05</span>
+                  <span class="service-name">Hulu</span>
                 </div>
               </div>
             </div>
@@ -80,9 +94,15 @@
         </div>
 
         <p class="tagline">
-          Tube is a minimal native macOS window for YouTube: no URL bar, no
-          browser chrome, just the video site in a focused Mac app.
+          YouTube, YouTube TV, Netflix, Apple TV, and Hulu in one focused Mac
+          app. Press <kbd>⌘K</kbd> to switch—no URL bar, no browser chrome.
         </p>
+
+        <ul class="product-notes" aria-label="Product highlights">
+          <li>macOS 13+</li>
+          <li>Native WebKit</li>
+          <li>No app analytics</li>
+        </ul>
 
         <div class="actions">
           <a
@@ -98,6 +118,12 @@
             Buy me a coffee
           </a>
         </div>
+
+        <p class="compatibility-note">
+          Tube displays each provider’s website in WebKit. Availability and
+          playback remain controlled by the provider. Tube is not affiliated
+          with any supported streaming service.
+        </p>
       </section>
 
       <footer class="site-footer" aria-label="Site links">

@@ -1,21 +1,28 @@
 # Tube
 
-Tube is a minimal native macOS app for watching YouTube in a focused window.
-It uses Swift, AppKit, and `WKWebView` instead of bundling a browser runtime.
+Tube is a minimal native macOS app for watching streaming services in a focused
+window. It uses Swift, AppKit, and `WKWebView` instead of bundling a browser
+runtime.
 
-The project is intentionally narrow: it opens YouTube, keeps browser chrome out
-of the way, and avoids modifying YouTube content or behavior. Tube is not
-affiliated with YouTube or Google.
+The project is intentionally narrow: it opens each service's website, keeps
+browser chrome out of the way, and avoids modifying site content or behavior.
+Tube is not affiliated with any supported streaming provider.
 
 ## Features
 
 - Native macOS window with standard traffic-light controls.
-- Focused YouTube experience with no URL bar or permanent browser toolbar.
+- Switch between YouTube, YouTube TV, Netflix, Apple TV, and Hulu.
+- Native service chooser with `Command-K` and a standard Service menu.
+- Focused playback with no URL bar or permanent browser toolbar.
 - Back, forward, reload, stop, and open-in-browser commands.
 - Trackpad back/forward navigation that respects the macOS setting.
-- YouTube/Google sign-in inside WebKit.
+- Persistent website sessions and provider-scoped session reset.
 - Light and dark appearance support for the native app chrome.
 - Small Vite-powered marketing site in `site/`.
+
+Streaming providers control browser and DRM compatibility. A service may load
+successfully but still restrict sign-in, protected playback, resolution, or
+external-display behavior inside an embedded WebKit view.
 
 ## Requirements
 
@@ -107,14 +114,16 @@ xcrun notarytool store-credentials tube-notary
 
 ## Privacy
 
-Tube does not collect credentials, inject scripts, modify YouTube, or track
-usage. Google and YouTube sign-in happen inside WebKit, and WebKit manages the
-resulting website session.
+Tube does not collect credentials, inject scripts, modify streaming sites, or
+track usage. Provider sign-in happens inside WebKit, and WebKit manages the
+resulting website sessions. If a provider needs location for local or live
+programming, macOS asks for permission and WebKit shares it directly with that
+provider; Tube does not store it.
 
 ## Contributing
 
 Issues and pull requests are welcome. Please keep changes aligned with the
-project scope: a small native Mac wrapper for YouTube, minimal chrome, and no
+project scope: a small native Mac streaming wrapper, minimal chrome, and no
 content injection or scraping.
 
 Before opening a PR, run:

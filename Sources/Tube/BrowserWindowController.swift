@@ -1,9 +1,11 @@
 import AppKit
 import QuartzCore
+import TubeCore
 
 @MainActor
 final class BrowserWindowController: NSWindowController {
-    let browserViewController = BrowserViewController()
+    let browserViewController: BrowserViewController
+    var onWindowWillClose: (() -> Void)?
     private let titlebarRevealHeight: CGFloat = 34
     private let titlebarChromeLeading: CGFloat = 8
     private let titlebarChromeTopInset: CGFloat = 0
@@ -16,6 +18,9 @@ final class BrowserWindowController: NSWindowController {
     private var standardWindowButtonsShouldBeVisible = false
 
     init() {
+        let browserViewController = BrowserViewController()
+        self.browserViewController = browserViewController
+
         let styleMask: NSWindow.StyleMask = [
             .titled,
             .closable,
@@ -31,7 +36,7 @@ final class BrowserWindowController: NSWindowController {
             defer: false
         )
 
-        window.title = "Tube"
+        window.title = "Tube — \(browserViewController.selectedService.displayName)"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -48,6 +53,9 @@ final class BrowserWindowController: NSWindowController {
         installTitlebarChrome(in: window)
         browserViewController.navigationStateDidChange = { [weak self] in
             self?.updateTitlebarNavigationState()
+        }
+        browserViewController.serviceDidChange = { [weak self] service in
+            self?.window?.title = "Tube — \(service.displayName)"
         }
         setTitlebarChromeVisible(false, animated: false)
         installTitlebarHoverMonitor(for: window)
@@ -269,6 +277,7 @@ extension BrowserWindowController: NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         removeTitlebarHoverMonitor()
+        onWindowWillClose?()
     }
 }
 

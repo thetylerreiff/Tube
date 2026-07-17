@@ -156,6 +156,10 @@ if [[ "$SKIP_NOTARIZATION" -eq 0 ]]; then
 
   echo "==> Gatekeeper app assessment"
   spctl -a -vv "$APP_DIR"
+
+  echo "==> Recreating zip with stapled app"
+  rm -f "$ZIP_PATH"
+  ditto -c -k --keepParent "$APP_DIR" "$ZIP_PATH"
 else
   echo "warning: skipping notarization; artifacts are not production-ready" >&2
 fi

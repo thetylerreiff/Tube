@@ -4,18 +4,18 @@ import WebKit
 
 @MainActor
 final class BrowserViewController: NSViewController {
-    private let homeURL = URL(string: "https://www.youtube.com")!
-    private let signInURL = URL(
-        string: "https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F&hl=en"
-    )!
-    private let navigationPolicy = BrowserNavigationPolicy()
-    private let webView: TubeWebView
+    private static let selectedServiceDefaultsKey = "SelectedStreamingService"
+
+    private var webView: TubeWebView
     private let bezelView = BezelContainerView()
     private let errorOverlay = BrowserErrorOverlay()
     private let bezelInset: CGFloat = 6
     private var navigationStateObservations: [NSKeyValueObservation] = []
 
     var navigationStateDidChange: (() -> Void)?
+    var serviceDidChange: ((StreamingService) -> Void)?
+
+    private(set) var selectedService: StreamingService
 
     var canGoBack: Bool {
         webView.canGoBack
@@ -38,17 +38,14 @@ final class BrowserViewController: NSViewController {
     }
 
     init() {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = WKWebsiteDataStore.default()
-        configuration.allowsAirPlayForMediaPlayback = true
-        configuration.mediaTypesRequiringUserActionForPlayback = []
+        let savedService = UserDefaults.standard.string(
+            forKey: Self.selectedServiceDefaultsKey
+        ).flatMap(StreamingService.init(rawValue:))
 
-        webView = TubeWebView(frame: .zero, configuration: configuration)
-        webView.allowsBackForwardNavigationGestures = true
-        webView.underPageBackgroundColor = TubeAppearance.dynamicWebBackground
+        selectedService = savedService ?? .defaultService
+        webView = Self.makeWebView(for: selectedService)
         super.init(nibName: nil, bundle: nil)
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
+        configureWebView(webView)
         observeNavigationState()
     }
 
@@ -71,8 +68,6 @@ final class BrowserViewController: NSViewController {
         bezelView.layer?.cornerRadius = 10
         bezelView.layer?.masksToBounds = true
 
-        webView.translatesAutoresizingMaskIntoConstraints = false
-
         errorOverlay.translatesAutoresizingMaskIntoConstraints = false
         errorOverlay.isHidden = true
         errorOverlay.retryHandler = { [weak self] in
@@ -83,7 +78,7 @@ final class BrowserViewController: NSViewController {
         }
 
         view.addSubview(bezelView)
-        bezelView.addSubview(webView)
+        installWebView(webView)
         bezelView.addSubview(errorOverlay)
 
         NSLayoutConstraint.activate([
@@ -91,11 +86,6 @@ final class BrowserViewController: NSViewController {
             bezelView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bezelView.topAnchor.constraint(equalTo: view.topAnchor),
             bezelView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            webView.leadingAnchor.constraint(equalTo: bezelView.leadingAnchor, constant: bezelInset),
-            webView.trailingAnchor.constraint(equalTo: bezelView.trailingAnchor, constant: -bezelInset),
-            webView.topAnchor.constraint(equalTo: bezelView.topAnchor, constant: bezelInset),
-            webView.bottomAnchor.constraint(equalTo: bezelView.bottomAnchor, constant: -bezelInset),
 
             errorOverlay.centerXAnchor.constraint(equalTo: bezelView.centerXAnchor),
             errorOverlay.centerYAnchor.constraint(equalTo: bezelView.centerYAnchor)
@@ -106,8 +96,20 @@ final class BrowserViewController: NSViewController {
 
     func loadHome() {
         errorOverlay.isHidden = true
-        webView.load(URLRequest(url: homeURL))
+        webView.load(URLRequest(url: selectedService.homeURL))
         notifyNavigationStateDidChange()
+    }
+
+    func switchService(to service: StreamingService) {
+        guard selectedService != service else {
+            return
+        }
+
+        selectedService = service
+        UserDefaults.standard.set(service.rawValue, forKey: Self.selectedServiceDefaultsKey)
+        replaceWebView()
+        loadHome()
+        serviceDidChange?(service)
     }
 
     func goBack() {
@@ -140,19 +142,20 @@ final class BrowserViewController: NSViewController {
     }
 
     func openCurrentPageInBrowser() {
-        NSWorkspace.shared.open(webView.url ?? homeURL)
+        NSWorkspace.shared.open(webView.url ?? selectedService.homeURL)
     }
 
-    func signInToYouTube() {
+    func signIn() {
         errorOverlay.isHidden = true
-        webView.load(URLRequest(url: signInURL))
+        webView.load(URLRequest(url: selectedService.signInURL))
         notifyNavigationStateDidChange()
     }
 
     func resetSession() {
+        let service = selectedService
         let alert = NSAlert()
-        alert.messageText = "Reset YouTube session?"
-        alert.informativeText = "This clears Tube's YouTube website data and reloads YouTube."
+        alert.messageText = "Reset \(service.displayName) session?"
+        alert.informativeText = resetSessionMessage(for: service)
         alert.addButton(withTitle: "Reset")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
@@ -163,11 +166,96 @@ final class BrowserViewController: NSViewController {
 
         webView.stopLoading()
         let dataTypes = WKWebsiteDataStore.allWebsiteDataTypes()
-        WKWebsiteDataStore.default().removeData(
-            ofTypes: dataTypes,
-            modifiedSince: Date(timeIntervalSince1970: 0)
-        ) { [weak self] in
-            self?.loadHome()
+        let dataStore = WKWebsiteDataStore.default()
+        dataStore.fetchDataRecords(ofTypes: dataTypes) { [weak self] records in
+            let matchingRecords = records.filter { record in
+                service.ownsWebsiteDataRecord(named: record.displayName)
+            }
+
+            dataStore.removeData(ofTypes: dataTypes, for: matchingRecords) { [weak self] in
+                Task { @MainActor [weak self] in
+                    guard let self, selectedService == service else {
+                        return
+                    }
+
+                    replaceWebView()
+                    loadHome()
+                }
+            }
+        }
+    }
+
+    private static func makeWebView(for service: StreamingService) -> TubeWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = WKWebsiteDataStore.default()
+        configuration.allowsAirPlayForMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+
+        if service != .youtube {
+            configuration.applicationNameForUserAgent = safariUserAgentSuffix
+        }
+
+        return TubeWebView(frame: .zero, configuration: configuration)
+    }
+
+    private static var safariUserAgentSuffix: String {
+        let safariVersion = Bundle(path: "/Applications/Safari.app")?
+            .object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "18.0"
+        return "Version/\(safariVersion) Safari/605.1.15"
+    }
+
+    private func configureWebView(_ webView: TubeWebView) {
+        webView.allowsBackForwardNavigationGestures = true
+        webView.underPageBackgroundColor = TubeAppearance.dynamicWebBackground
+        webView.navigationDelegate = self
+        webView.uiDelegate = self
+    }
+
+    private func installWebView(_ webView: TubeWebView) {
+        webView.translatesAutoresizingMaskIntoConstraints = false
+
+        if errorOverlay.superview === bezelView {
+            bezelView.addSubview(webView, positioned: .below, relativeTo: errorOverlay)
+        } else {
+            bezelView.addSubview(webView)
+        }
+
+        NSLayoutConstraint.activate([
+            webView.leadingAnchor.constraint(equalTo: bezelView.leadingAnchor, constant: bezelInset),
+            webView.trailingAnchor.constraint(equalTo: bezelView.trailingAnchor, constant: -bezelInset),
+            webView.topAnchor.constraint(equalTo: bezelView.topAnchor, constant: bezelInset),
+            webView.bottomAnchor.constraint(equalTo: bezelView.bottomAnchor, constant: -bezelInset)
+        ])
+    }
+
+    private func replaceWebView() {
+        navigationStateObservations.removeAll()
+        webView.stopLoading()
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+        webView.removeFromSuperview()
+
+        let replacement = Self.makeWebView(for: selectedService)
+        webView = replacement
+        configureWebView(replacement)
+
+        if isViewLoaded {
+            installWebView(replacement)
+            applyAppearance()
+        }
+
+        observeNavigationState()
+        notifyNavigationStateDidChange()
+    }
+
+    private func resetSessionMessage(for service: StreamingService) -> String {
+        switch service {
+        case .youtube, .youtubeTV:
+            "This clears Tube's Google and YouTube website data, signs out both YouTube services in Tube, and reloads \(service.displayName)."
+        case .appleTV:
+            "This clears Tube's Apple TV and Apple Account website data, signs out Apple TV in Tube, and reloads it."
+        default:
+            "This clears Tube's \(service.displayName) website data, signs out that service in Tube, and reloads it."
         }
     }
 
@@ -243,7 +331,10 @@ extension BrowserViewController: WKNavigationDelegate {
     ) {
         let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
 
-        switch navigationPolicy.decision(for: navigationAction.request.url, isMainFrame: isMainFrame) {
+        switch selectedService.navigationPolicy.decision(
+            for: navigationAction.request.url,
+            isMainFrame: isMainFrame
+        ) {
         case .allowInApp:
             decisionHandler(.allow)
         case .openExternally:
@@ -291,7 +382,10 @@ extension BrowserViewController: WKUIDelegate {
             return nil
         }
 
-        switch navigationPolicy.decision(for: navigationAction.request.url, isMainFrame: true) {
+        switch selectedService.navigationPolicy.decision(
+            for: navigationAction.request.url,
+            isMainFrame: true
+        ) {
         case .allowInApp:
             webView.load(navigationAction.request)
         case .openExternally:

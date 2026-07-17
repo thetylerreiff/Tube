@@ -23,6 +23,7 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 ICON_PATH="$ROOT_DIR/Tube/AppIcon.icns"
 ASSETS_CAR_PATH="$ROOT_DIR/Build/AssetCatalog/Assets.car"
+GENERATED_ICON_PATH="$ROOT_DIR/Build/AssetCatalog/AppIcon.icns"
 
 "$ROOT_DIR/scripts/generate-app-icon.sh" >/dev/null
 
@@ -30,8 +31,18 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$BIN_DIR/Tube" "$MACOS_DIR/Tube"
 cp "$ROOT_DIR/Tube/Info.plist" "$CONTENTS_DIR/Info.plist"
-cp "$ICON_PATH" "$RESOURCES_DIR/AppIcon.icns"
-cp "$ASSETS_CAR_PATH" "$RESOURCES_DIR/Assets.car"
+
+if [[ -f "$GENERATED_ICON_PATH" ]]; then
+  cp "$GENERATED_ICON_PATH" "$RESOURCES_DIR/AppIcon.icns"
+elif [[ -f "$ICON_PATH" ]]; then
+  cp "$ICON_PATH" "$RESOURCES_DIR/AppIcon.icns"
+else
+  echo "No app icon is available; the bundle will use the macOS default icon" >&2
+fi
+
+if [[ -f "$ASSETS_CAR_PATH" ]]; then
+  cp "$ASSETS_CAR_PATH" "$RESOURCES_DIR/Assets.car"
+fi
 
 codesign_args=(
   --force
