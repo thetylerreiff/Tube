@@ -229,11 +229,9 @@ final class BrowserViewController: NSViewController {
     }
 
     private func replaceWebView() {
+        let outgoingWebView = webView
         navigationStateObservations.removeAll()
-        webView.stopLoading()
-        webView.navigationDelegate = nil
-        webView.uiDelegate = nil
-        webView.removeFromSuperview()
+        retireWebView(outgoingWebView)
 
         let replacement = Self.makeWebView(for: selectedService)
         webView = replacement
@@ -246,6 +244,19 @@ final class BrowserViewController: NSViewController {
 
         observeNavigationState()
         notifyNavigationStateDidChange()
+    }
+
+    private func retireWebView(_ webView: TubeWebView) {
+        webView.stopLoading()
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+        webView.removeFromSuperview()
+
+        // Keep the retired page alive until WebKit acknowledges media shutdown.
+        Task { @MainActor [webView] in
+            await webView.closeAllMediaPresentations()
+            await webView.pauseAllMediaPlayback()
+        }
     }
 
     private func resetSessionMessage(for service: StreamingService) -> String {
