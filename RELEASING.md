@@ -32,7 +32,10 @@ scripts/release-app.sh --notary-profile tube-notary
 This runs `swift test`, builds the release configuration, code-signs with your
 Developer ID identity (auto-discovered from the keychain, or pass
 `--identity`), creates a zip and DMG, notarizes and staples both, and runs a
-Gatekeeper (`spctl`) assessment on each. Artifacts land in `Dist/` as:
+Gatekeeper (`spctl`) assessment on each. The DMG contains `Tube.app` and the
+standard `Applications` symlink so users can install the app by dragging it
+onto the Applications folder. The release script mounts the finished image and
+verifies both items before notarization. Artifacts land in `Dist/` as:
 
 - `Dist/Tube-X.Y.Z-build-N.dmg`
 - `Dist/Tube-X.Y.Z-build-N.zip`

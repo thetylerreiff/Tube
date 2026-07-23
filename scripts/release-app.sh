@@ -8,6 +8,9 @@ DIST_DIR="${TUBE_DIST_DIR:-$ROOT_DIR/Dist}"
 IDENTITY="${TUBE_CODESIGN_IDENTITY:-}"
 NOTARY_PROFILE="${TUBE_NOTARY_PROFILE:-}"
 SKIP_NOTARIZATION=0
+DMG_STAGING_DIR=""
+DMG_MOUNT_DIR=""
+DMG_IS_MOUNTED=0
 
 usage() {
   cat >&2 <<'USAGE'
@@ -37,6 +40,22 @@ fail() {
 require_tool() {
   command -v "$1" >/dev/null 2>&1 || fail "missing required tool: $1"
 }
+
+cleanup() {
+  if [[ "$DMG_IS_MOUNTED" -eq 1 ]]; then
+    hdiutil detach "$DMG_MOUNT_DIR" >/dev/null 2>&1 || true
+  fi
+
+  if [[ -n "$DMG_STAGING_DIR" && -d "$DMG_STAGING_DIR" ]]; then
+    rm -rf "$DMG_STAGING_DIR"
+  fi
+
+  if [[ -n "$DMG_MOUNT_DIR" && -d "$DMG_MOUNT_DIR" ]]; then
+    rmdir "$DMG_MOUNT_DIR" 2>/dev/null || true
+  fi
+}
+
+trap cleanup EXIT
 
 plist_value() {
   /usr/libexec/PlistBuddy -c "Print :$1" "$INFO_PLIST"
@@ -166,9 +185,12 @@ fi
 
 echo "==> Creating dmg"
 rm -f "$DMG_PATH"
+DMG_STAGING_DIR="$(mktemp -d "$DIST_DIR/.dmg-root.XXXXXX")"
+ditto "$APP_DIR" "$DMG_STAGING_DIR/$APP_NAME.app"
+ln -s /Applications "$DMG_STAGING_DIR/Applications"
 hdiutil create \
   -volname "$APP_NAME" \
-  -srcfolder "$APP_DIR" \
+  -srcfolder "$DMG_STAGING_DIR" \
   -ov \
   -format UDZO \
   "$DMG_PATH"
@@ -178,6 +200,21 @@ codesign --force --sign "$IDENTITY" --timestamp "$DMG_PATH"
 
 echo "==> Verifying dmg"
 hdiutil verify "$DMG_PATH"
+DMG_MOUNT_DIR="$(mktemp -d "$DIST_DIR/.dmg-mount.XXXXXX")"
+hdiutil attach \
+  -readonly \
+  -nobrowse \
+  -mountpoint "$DMG_MOUNT_DIR" \
+  "$DMG_PATH" >/dev/null
+DMG_IS_MOUNTED=1
+[[ -d "$DMG_MOUNT_DIR/$APP_NAME.app" ]] || fail "dmg is missing $APP_NAME.app"
+[[ -L "$DMG_MOUNT_DIR/Applications" ]] || fail "dmg is missing the Applications symlink"
+[[ "$(readlink "$DMG_MOUNT_DIR/Applications")" == "/Applications" ]] \
+  || fail "dmg Applications symlink does not target /Applications"
+hdiutil detach "$DMG_MOUNT_DIR" >/dev/null
+DMG_IS_MOUNTED=0
+rmdir "$DMG_MOUNT_DIR"
+DMG_MOUNT_DIR=""
 
 if [[ "$SKIP_NOTARIZATION" -eq 0 ]]; then
   echo "==> Notarizing dmg"
