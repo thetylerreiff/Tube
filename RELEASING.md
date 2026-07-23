@@ -53,6 +53,11 @@ gh release create vX.Y.Z \
   --notes "..."
 ```
 
+Tube checks GitHub's latest published stable release once per day and from the
+**Tube > Check for Updates…** menu command. Draft and prerelease releases are
+not announced; publishing the stable release makes it discoverable without a
+separate feed or website update.
+
 ## 4. Update the marketing site
 
 The site in `site/` is hosted on Vercel via the GitHub integration (domain

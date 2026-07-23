@@ -5,6 +5,7 @@ import TubeCore
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private var browserWindowController: BrowserWindowController?
     private var serviceSwitcherController: ServiceSwitcherController?
+    private let updateController = UpdateController()
 
     private var browserViewController: BrowserViewController? {
         browserWindowController?.browserViewController
@@ -29,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         windowController.showWindow(self)
         windowController.browserViewController.loadHome()
         NSApp.activate(ignoringOtherApps: true)
+        updateController.checkAutomaticallyIfNeeded()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -138,12 +140,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         ])
     }
 
+    @objc func checkForUpdates(_ sender: Any?) {
+        updateController.checkManually()
+    }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         guard let action = menuItem.action else {
             return true
         }
 
         switch action {
+        case #selector(checkForUpdates(_:)):
+            return !updateController.isChecking
         case #selector(switchService(_:)):
             guard let rawValue = menuItem.representedObject as? String,
                   let service = StreamingService(rawValue: rawValue)

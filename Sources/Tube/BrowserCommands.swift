@@ -29,6 +29,12 @@ enum BrowserCommands {
             key: "",
             target: target
         ))
+        appMenu.addItem(item(
+            title: "Check for Updates…",
+            action: #selector(AppDelegate.checkForUpdates(_:)),
+            key: "",
+            target: target
+        ))
         appMenu.addItem(.separator())
         appMenu.addItem(
             withTitle: "Hide Tube",
