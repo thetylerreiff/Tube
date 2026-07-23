@@ -265,6 +265,8 @@ final class BrowserViewController: NSViewController {
             "This clears Tube's Google and YouTube website data, signs out both YouTube services in Tube, and reloads \(service.displayName)."
         case .appleTV:
             "This clears Tube's Apple TV and Apple Account website data, signs out Apple TV in Tube, and reloads it."
+        case .audible:
+            "This clears Tube's Audible and Amazon website data, signs out Audible in Tube, and reloads it."
         default:
             "This clears Tube's \(service.displayName) website data, signs out that service in Tube, and reloads it."
         }

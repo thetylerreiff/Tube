@@ -9,6 +9,7 @@ public enum NavigationDecision: Equatable, Sendable {
 public struct BrowserNavigationPolicy: Sendable {
     private let allowedHostSuffixes: Set<String>
     private let allowedExactHosts: Set<String>
+    private let allowedPathPrefixesByExactHost: [String: Set<String>]
     private let externalSchemes: Set<String>
 
     public init(
@@ -24,6 +25,7 @@ public struct BrowserNavigationPolicy: Sendable {
             "google.com",
             "www.google.com"
         ],
+        allowedPathPrefixesByExactHost: [String: Set<String>] = [:],
         externalSchemes: Set<String> = [
             "facetime",
             "facetime-audio",
@@ -34,6 +36,11 @@ public struct BrowserNavigationPolicy: Sendable {
     ) {
         self.allowedHostSuffixes = Set(allowedHostSuffixes.map(Self.normalizeHost))
         self.allowedExactHosts = Set(allowedExactHosts.map(Self.normalizeHost))
+        self.allowedPathPrefixesByExactHost = allowedPathPrefixesByExactHost.reduce(into: [:]) {
+            normalizedRules, rule in
+            normalizedRules[Self.normalizeHost(rule.key), default: []]
+                .formUnion(rule.value.map(Self.normalizePathPrefix))
+        }
         self.externalSchemes = Set(externalSchemes.map { $0.lowercased() })
     }
 
@@ -56,7 +63,7 @@ public struct BrowserNavigationPolicy: Sendable {
                 return .cancel
             }
 
-            return isAllowedWebHost(host) ? .allowInApp : .openExternally
+            return isAllowedWebURL(url, host: host) ? .allowInApp : .openExternally
 
         case "http":
             return .openExternally
@@ -69,13 +76,23 @@ public struct BrowserNavigationPolicy: Sendable {
         }
     }
 
-    private func isAllowedWebHost(_ host: String) -> Bool {
+    private func isAllowedWebURL(_ url: URL, host: String) -> Bool {
         if allowedExactHosts.contains(host) {
             return true
         }
 
-        return allowedHostSuffixes.contains { suffix in
+        if allowedHostSuffixes.contains(where: { suffix in
             host == suffix || host.hasSuffix(".\(suffix)")
+        }) {
+            return true
+        }
+
+        guard let allowedPathPrefixes = allowedPathPrefixesByExactHost[host] else {
+            return false
+        }
+
+        return allowedPathPrefixes.contains { prefix in
+            url.path == prefix || url.path.hasPrefix("\(prefix)/")
         }
     }
 
@@ -92,5 +109,14 @@ public struct BrowserNavigationPolicy: Sendable {
             .trimmingCharacters(in: CharacterSet(charactersIn: "."))
             .lowercased()
     }
-}
 
+    private static func normalizePathPrefix(_ pathPrefix: String) -> String {
+        let prefixedPath = pathPrefix.hasPrefix("/") ? pathPrefix : "/\(pathPrefix)"
+
+        if prefixedPath.count > 1, prefixedPath.hasSuffix("/") {
+            return String(prefixedPath.dropLast())
+        }
+
+        return prefixedPath
+    }
+}

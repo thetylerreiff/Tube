@@ -20,7 +20,7 @@ final class ServiceSwitcherController: NSWindowController, NSSearchFieldDelegate
 
     init() {
         let panel = ServiceSwitcherPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 310),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 398),
             styleMask: [.titled, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -347,6 +347,10 @@ private extension StreamingService {
             "appletv.fill"
         case .hulu:
             "play.tv.fill"
+        case .twitch:
+            "antenna.radiowaves.left.and.right"
+        case .audible:
+            "headphones"
         }
     }
 }

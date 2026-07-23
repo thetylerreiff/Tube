@@ -69,4 +69,34 @@ struct BrowserNavigationPolicyTests {
         #expect(policy.decision(for: URL(string: "javascript:alert(1)"), isMainFrame: true) == .cancel)
         #expect(policy.decision(for: URL(string: "data:text/html,hello"), isMainFrame: true) == .cancel)
     }
+
+    @Test("scopes exact-host path prefixes to path boundaries")
+    func exactHostPathPrefixesRespectBoundaries() {
+        let scopedPolicy = BrowserNavigationPolicy(
+            allowedHostSuffixes: [],
+            allowedExactHosts: [],
+            allowedPathPrefixesByExactHost: [
+                "EXAMPLE.COM.": ["account/"]
+            ]
+        )
+
+        #expect(
+            scopedPolicy.decision(
+                for: URL(string: "https://example.com/account/login"),
+                isMainFrame: true
+            ) == .allowInApp
+        )
+        #expect(
+            scopedPolicy.decision(
+                for: URL(string: "https://example.com/accounting"),
+                isMainFrame: true
+            ) == .openExternally
+        )
+        #expect(
+            scopedPolicy.decision(
+                for: URL(string: "https://sub.example.com/account/login"),
+                isMainFrame: true
+            ) == .openExternally
+        )
+    }
 }

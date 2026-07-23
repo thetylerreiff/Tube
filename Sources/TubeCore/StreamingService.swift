@@ -6,6 +6,8 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
     case netflix
     case appleTV
     case hulu
+    case twitch
+    case audible
 
     public static let defaultService: StreamingService = .youtube
 
@@ -21,6 +23,10 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
             "Apple TV"
         case .hulu:
             "Hulu"
+        case .twitch:
+            "Twitch"
+        case .audible:
+            "Audible"
         }
     }
 
@@ -36,6 +42,10 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
             Self.url("https://tv.apple.com/")
         case .hulu:
             Self.url("https://www.hulu.com/welcome")
+        case .twitch:
+            Self.url("https://www.twitch.tv/")
+        case .audible:
+            Self.url("https://www.audible.com/library/titles")
         }
     }
 
@@ -53,13 +63,18 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
             Self.url("https://tv.apple.com/login")
         case .hulu:
             Self.url("https://auth.hulu.com/login")
+        case .twitch:
+            Self.url("https://www.twitch.tv/login")
+        case .audible:
+            Self.url("https://www.audible.com/sign-in")
         }
     }
 
     public var navigationPolicy: BrowserNavigationPolicy {
         BrowserNavigationPolicy(
             allowedHostSuffixes: allowedHostSuffixes,
-            allowedExactHosts: allowedExactHosts
+            allowedExactHosts: allowedExactHosts,
+            allowedPathPrefixesByExactHost: allowedPathPrefixesByExactHost
         )
     }
 
@@ -73,6 +88,10 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
             ["apple.com"]
         case .hulu:
             ["hulu.com"]
+        case .twitch:
+            ["twitch.tv"]
+        case .audible:
+            ["audible.com", "amazon.com"]
         }
     }
 
@@ -96,6 +115,10 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
             []
         case .hulu:
             ["hulu.com"]
+        case .twitch:
+            ["twitch.tv"]
+        case .audible:
+            ["audible.com"]
         }
     }
 
@@ -119,6 +142,22 @@ public enum StreamingService: String, CaseIterable, Codable, Sendable {
             ]
         case .hulu:
             []
+        case .twitch:
+            []
+        case .audible:
+            []
+        }
+    }
+
+    private var allowedPathPrefixesByExactHost: [String: Set<String>] {
+        switch self {
+        case .audible:
+            [
+                "amazon.com": ["/ap"],
+                "www.amazon.com": ["/ap"]
+            ]
+        default:
+            [:]
         }
     }
 

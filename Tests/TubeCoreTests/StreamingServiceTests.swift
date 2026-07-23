@@ -11,7 +11,9 @@ struct StreamingServiceTests {
             .youtubeTV,
             .netflix,
             .appleTV,
-            .hulu
+            .hulu,
+            .twitch,
+            .audible
         ])
     }
 
@@ -27,7 +29,9 @@ struct StreamingServiceTests {
         (StreamingService.youtube, StreamingService.netflix),
         (StreamingService.netflix, StreamingService.appleTV),
         (StreamingService.appleTV, StreamingService.hulu),
-        (StreamingService.hulu, StreamingService.youtube)
+        (StreamingService.hulu, StreamingService.twitch),
+        (StreamingService.twitch, StreamingService.audible),
+        (StreamingService.audible, StreamingService.youtube)
     ])
     func isolatesServicePolicies(activeService: StreamingService, unrelatedService: StreamingService) {
         #expect(
@@ -66,12 +70,50 @@ struct StreamingServiceTests {
         )
     }
 
+    @Test("allows Audible Amazon authentication without allowing arbitrary Amazon pages")
+    func scopesAudibleAmazonAuthentication() {
+        let policy = StreamingService.audible.navigationPolicy
+
+        #expect(
+            policy.decision(
+                for: URL(string: "https://www.amazon.com/ap/signin"),
+                isMainFrame: true
+            ) == .allowInApp
+        )
+        #expect(
+            policy.decision(
+                for: URL(string: "https://www.amazon.com/ap/mfa"),
+                isMainFrame: true
+            ) == .allowInApp
+        )
+        #expect(
+            policy.decision(
+                for: URL(string: "https://amazon.com/ap/signin"),
+                isMainFrame: true
+            ) == .allowInApp
+        )
+        #expect(
+            policy.decision(
+                for: URL(string: "https://www.amazon.com/appliances"),
+                isMainFrame: true
+            ) == .openExternally
+        )
+        #expect(
+            policy.decision(
+                for: URL(string: "https://www.amazon.com/gp/product/example"),
+                isMainFrame: true
+            ) == .openExternally
+        )
+    }
+
     @Test("matches only website data owned by the active service")
     func matchesOwnedWebsiteData() {
         #expect(StreamingService.netflix.ownsWebsiteDataRecord(named: "www.netflix.com"))
         #expect(StreamingService.netflix.ownsWebsiteDataRecord(named: ".NETFLIX.COM."))
         #expect(!StreamingService.netflix.ownsWebsiteDataRecord(named: "notnetflix.com"))
         #expect(!StreamingService.netflix.ownsWebsiteDataRecord(named: "youtube.com"))
+        #expect(StreamingService.audible.ownsWebsiteDataRecord(named: "www.amazon.com"))
+        #expect(!StreamingService.audible.ownsWebsiteDataRecord(named: "notamazon.com"))
     }
 
     @Test("shares Google website data between YouTube services")

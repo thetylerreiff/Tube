@@ -11,7 +11,7 @@ Tube is not affiliated with any supported streaming provider.
 ## Features
 
 - Native macOS window with standard traffic-light controls.
-- Switch between YouTube, YouTube TV, Netflix, Apple TV, and Hulu.
+- Switch between YouTube, YouTube TV, Netflix, Apple TV, Hulu, Twitch, and Audible.
 - Native service chooser with `Command-K` and a standard Service menu.
 - Focused playback with no URL bar or permanent browser toolbar.
 - Back, forward, reload, stop, and open-in-browser commands.
