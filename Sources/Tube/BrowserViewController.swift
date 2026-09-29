@@ -8,8 +8,18 @@ final class BrowserViewController: NSViewController {
 
     private var webView: TubeWebView
     private let bezelView = BezelContainerView()
+    private let screenView = NSView()
     private let errorOverlay = BrowserErrorOverlay()
     private let bezelInset: CGFloat = 6
+    private var screenInsetConstraints: [NSLayoutConstraint] = []
+    private var isFramed = true
+
+    /// The window's own corner radius; the screen's corners stay concentric with it.
+    var windowCornerRadius: CGFloat = 10 {
+        didSet {
+            updateScreenShape()
+        }
+    }
     private var navigationStateObservations: [NSKeyValueObservation] = []
 
     var navigationStateDidChange: (() -> Void)?
@@ -64,9 +74,12 @@ final class BrowserViewController: NSViewController {
 
         bezelView.translatesAutoresizingMaskIntoConstraints = false
         bezelView.wantsLayer = true
-        bezelView.layer?.borderWidth = 1
-        bezelView.layer?.cornerRadius = 10
-        bezelView.layer?.masksToBounds = true
+
+        screenView.translatesAutoresizingMaskIntoConstraints = false
+        screenView.wantsLayer = true
+        screenView.layer?.masksToBounds = true
+        screenView.layer?.cornerCurve = .continuous
+        screenView.layer?.borderWidth = 1
 
         errorOverlay.translatesAutoresizingMaskIntoConstraints = false
         errorOverlay.isHidden = true
@@ -78,10 +91,18 @@ final class BrowserViewController: NSViewController {
         }
 
         view.addSubview(bezelView)
+        bezelView.addSubview(screenView)
         installWebView(webView)
         bezelView.addSubview(errorOverlay)
 
-        NSLayoutConstraint.activate([
+        screenInsetConstraints = [
+            screenView.leadingAnchor.constraint(equalTo: bezelView.leadingAnchor, constant: bezelInset),
+            bezelView.trailingAnchor.constraint(equalTo: screenView.trailingAnchor, constant: bezelInset),
+            screenView.topAnchor.constraint(equalTo: bezelView.topAnchor, constant: bezelInset),
+            bezelView.bottomAnchor.constraint(equalTo: screenView.bottomAnchor, constant: bezelInset)
+        ]
+
+        NSLayoutConstraint.activate(screenInsetConstraints + [
             bezelView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bezelView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bezelView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -91,7 +112,23 @@ final class BrowserViewController: NSViewController {
             errorOverlay.centerYAnchor.constraint(equalTo: bezelView.centerYAnchor)
         ])
 
+        updateScreenShape()
         applyAppearance()
+    }
+
+    /// Framed shows the bezel around a rounded screen; unframed (fullscreen) lets the page fill the window.
+    func setFramed(_ framed: Bool) {
+        guard isFramed != framed else {
+            return
+        }
+
+        isFramed = framed
+        guard isViewLoaded else {
+            return
+        }
+
+        screenInsetConstraints.forEach { $0.constant = framed ? bezelInset : 0 }
+        updateScreenShape()
     }
 
     func loadHome() {
@@ -214,18 +251,23 @@ final class BrowserViewController: NSViewController {
     private func installWebView(_ webView: TubeWebView) {
         webView.translatesAutoresizingMaskIntoConstraints = false
 
-        if errorOverlay.superview === bezelView {
-            bezelView.addSubview(webView, positioned: .below, relativeTo: errorOverlay)
-        } else {
-            bezelView.addSubview(webView)
-        }
+        screenView.addSubview(webView)
 
         NSLayoutConstraint.activate([
-            webView.leadingAnchor.constraint(equalTo: bezelView.leadingAnchor, constant: bezelInset),
-            webView.trailingAnchor.constraint(equalTo: bezelView.trailingAnchor, constant: -bezelInset),
-            webView.topAnchor.constraint(equalTo: bezelView.topAnchor, constant: bezelInset),
-            webView.bottomAnchor.constraint(equalTo: bezelView.bottomAnchor, constant: -bezelInset)
+            webView.leadingAnchor.constraint(equalTo: screenView.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: screenView.trailingAnchor),
+            webView.topAnchor.constraint(equalTo: screenView.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: screenView.bottomAnchor)
         ])
+    }
+
+    private func updateScreenShape() {
+        guard isViewLoaded else {
+            return
+        }
+
+        screenView.layer?.cornerRadius = isFramed ? max(windowCornerRadius - bezelInset, 0) : 0
+        screenView.layer?.borderWidth = isFramed ? 1 : 0
     }
 
     private func replaceWebView() {
@@ -322,7 +364,7 @@ final class BrowserViewController: NSViewController {
         let appearance = view.effectiveAppearance
         view.layer?.backgroundColor = TubeAppearance.windowBackground(for: appearance).cgColor
         bezelView.layer?.backgroundColor = TubeAppearance.windowBackground(for: appearance).cgColor
-        bezelView.layer?.borderColor = TubeAppearance.bezelBorder(for: appearance).cgColor
+        screenView.layer?.borderColor = TubeAppearance.hairline(for: appearance).cgColor
         webView.underPageBackgroundColor = TubeAppearance.webBackground(for: appearance)
     }
 }

@@ -21,10 +21,17 @@ enum TubeAppearance {
             : NSColor(calibratedWhite: 1.000, alpha: 1)
     }
 
-    static func bezelBorder(for appearance: NSAppearance) -> NSColor {
+    static func hairline(for appearance: NSAppearance) -> NSColor {
         isDark(appearance)
-            ? NSColor(calibratedRed: 0.190, green: 0.210, blue: 0.420, alpha: 0.90)
-            : NSColor(calibratedRed: 0.690, green: 0.710, blue: 0.780, alpha: 0.90)
+            ? NSColor(calibratedWhite: 1.000, alpha: 0.07)
+            : NSColor(calibratedWhite: 0.000, alpha: 0.09)
+    }
+
+    static func controlFill(for appearance: NSAppearance, pressed: Bool) -> NSColor {
+        let alpha: CGFloat = pressed ? 0.18 : 0.10
+        return isDark(appearance)
+            ? NSColor(calibratedWhite: 1.000, alpha: alpha)
+            : NSColor(calibratedWhite: 0.000, alpha: alpha)
     }
 
     static func overlayBackground(for appearance: NSAppearance) -> NSColor {
